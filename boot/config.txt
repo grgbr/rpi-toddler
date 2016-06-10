@@ -1,0 +1,3 @@
+gpu_mem=16
+kernel=u-boot.bin
+disable_splash=1

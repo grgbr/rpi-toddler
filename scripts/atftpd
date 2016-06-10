@@ -1,0 +1,52 @@
+#! /bin/sh
+#
+# atftpd - Script to launch atftpd server.
+#
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/atftpd
+NAME=atftpd
+DESC="Advanced TFTP server"
+PORT=6900
+IPADDR=192.168.100.1
+LOGFILE="$HOME/tmp/atftpd.log"
+LOGLVL=7
+ROOT=$(realpath $(dirname $0)/../out/img)
+PIDFILE="$HOME/tmp/atftpd.pid"
+OPTIONS="--maxthread 2 --no-multicast --logfile $LOGFILE --pidfile $PIDFILE --daemon --user $USER --group $(id -gn) --port $PORT --bind-address $IPADDR --verbose=$LOGLVL $ROOT"
+
+test -f $DAEMON || exit 0
+
+set -e
+
+. /lib/lsb/init-functions
+
+touch $LOGFILE
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	start-stop-daemon --pidfile $PIDFILE --start --oknodo --quiet --exec $DAEMON -- $OPTIONS
+	echo "$NAME."
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+	start-stop-daemon --pidfile $PIDFILE --stop --oknodo --quiet --exec $DAEMON
+	echo "$NAME."
+	;;
+  restart|reload|force-reload)
+	echo -n "Restarting $DESC: "
+	start-stop-daemon --pidfile $PIDFILE --stop --oknodo --quiet --exec $DAEMON
+	sleep 1
+	start-stop-daemon --pidfile $PIDFILE --start --oknodo --quiet --exec $DAEMON -- $OPTIONS
+	echo "$NAME."
+	;;
+  status)
+	status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+	;;
+  *)
+        echo "Usage: $NAME {start|stop|restart|reload|force-reload|status}" >&2
+	exit 1
+	;;
+esac
+
+exit 0
