@@ -16,7 +16,7 @@ TARGET_CFLAGS  := -marm -mabi=aapcs-linux -mno-thumb-interwork -mcpu=cortex-a7 \
 TARGET_LDFLAGS := -Wl,-z,relro -Wl,-z,now -Wl,-z,combreloc -Wl,--gc-sections \
                   -pie -fpie -flto -fuse-linker-plugin -fuse-ld=gold -O2
 PROJECTS       := libtool dtc kmod uboot linux busybox libc ctng libm rpifw \
-                  initrd
+                  initrd iio
 
 ################################################################################
 # Build directory hierarchy
@@ -674,6 +674,59 @@ linux-%: $(call builddir,linux)/.cloned
 
 $(call deps,linux,config,libc,built)
 $(call deps,linux,config,dtc,installed)
+
+################################################################################
+# IIO utils (use sources found in Linux tools directory)
+################################################################################
+
+custom_projects += iio
+iio_src         := $(call srcdir,linux)/tools/iio
+iio_build       := $(call builddir, iio)
+iio_cflags      := -Wall -D_GNU_SOURCE $(TARGET_CFLAGS)
+iio_ldflags     := $(iio_cflags) $(TARGET_LDFLAGS)
+
+$(iio_build): | $(BUILD)
+	$(MKDIR) $@
+
+$(iio_build)/%.o: $(iio_src)/%.c $(iio_src)/iio_utils.h \
+                  $(call builddir,libc)/.built | $(iio_build)
+	$(TARGET_CC) $(iio_cflags) -o $@ -c $<
+
+$(iio_build)/lsiio: $(iio_build)/lsiio.o $(iio_build)/iio_utils.o
+	$(TARGET_CC) $(iio_ldflags) -o $@ $^
+
+$(iio_build)/iio_generic_buffer: $(iio_build)/iio_generic_buffer.o \
+                                 $(iio_build)/iio_utils.o
+	$(TARGET_CC) $(iio_ldflags) -o $@ $^
+
+.PHONY: build-iio
+build-iio: $(iio_build)/.built
+$(iio_build)/.built: $(iio_build)/lsiio $(iio_build)/iio_generic_buffer
+	touch $@
+
+$(STAGE)/usr/bin/lsiio: $(iio_build)/.built
+	$(INSTALL) -D -m755 $(iio_build)/lsiio $@
+	$(call root_install_bin,usr/bin/lsiio,usr/bin/lsiio)
+
+$(STAGE)/usr/bin/iio_generic_buffer: $(iio_build)/.built
+	$(INSTALL) -D -m755 $(iio_build)/iio_generic_buffer $@
+	$(call root_install_bin,usr/bin/lsiio,usr/bin/lsiio)
+
+.PHONY: install-iio
+install-iio: $(iio_build)/.installed
+$(iio_build)/.installed: $(STAGE)/usr/bin/lsiio \
+                         $(STAGE)/usr/bin/iio_generic_buffer | $(ROOT)
+	touch $@
+
+.PHONY: clean-iio
+clean-iio: uninstall-iio
+	$(RM) $(filter-out $(iio_build)/.installed,$(wildcard $(iio_build)/*))
+
+.PHONY: uninstall-iio
+uninstall-iio:
+	$(RM) $(addprefix $(ROOT)/usr/bin/, lsiio iio_generic_buffer)
+	$(RM) $(addprefix $(STAGE)/usr/bin/, lsiio iio_generic_buffer)
+	$(RM) $(iio_build)/.installed
 
 ################################################################################
 # Busybox
