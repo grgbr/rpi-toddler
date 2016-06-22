@@ -1,0 +1,68 @@
+#include "bcm2709-rpi-2-b.dts"
+#include "dt-bindings//interrupt-controller/irq.h"
+
+/ {
+        /* Main board it is compatible with */
+	compatible = "brcm,bcm2709";
+	model = "Raspberry Pi 2 Model B";
+};
+
+&i2c1 {
+	status = "okay";
+
+	/* magnetometer */
+	ak8963@0d {
+		status = "okay";
+		compatible = "ak8963";
+		reg = <0x0d>;
+		/*gpios = <&gpio 20 1>;*/
+		/*
+		 * 3D space rotation matrix to apply to correct
+		 * positional deviation from drone chassis
+		 */
+		mount-matrix = "0",  /* x0 */
+			       "-1", /* y0 */
+			       "0",  /* z0 */
+			       "1",  /* x1 */
+			       "0",  /* y1 */
+			       "0",  /* z1 */
+			       "0",  /* x2 */
+			       "0",  /* y2 */
+			       "1";  /* z2 */
+	};
+
+	/* barometer */
+	ms5607@77 {
+		status = "okay";
+		compatible = "ms5607";
+		reg = <0x77>;
+	};
+
+	/* barometer */
+	lps22hb@5d {
+		status = "okay";
+		compatible = "st,lps22hb-press";
+		reg = <0x5d>;
+		interrupt-parent = <&gpio>;
+		interrupts = <12 IRQ_TYPE_EDGE_RISING>;
+		st,drdy-int-pin = <1>;
+	};
+
+	/* barometer */
+	zpa2326@5c {
+		status = "okay";
+		compatible = "murata,zpa2326";
+		reg = <0x5c>;
+		interrupt-parent = <&gpio>;
+		interrupts = <12 IRQ_TYPE_EDGE_RISING>;
+	};
+
+	/* imu */
+	icm20608@68 {
+		status = "okay";
+		compatible = "icm20608";
+		reg = <0x68>;
+		interrupt-parent = <&gpio>;
+		interrupts = <21 IRQ_TYPE_EDGE_RISING>;
+	};
+};

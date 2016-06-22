@@ -7,7 +7,6 @@ V ?= 0
 ARCH           := arm
 VENDOR         := bcm2836
 TARGET         := arm-$(VENDOR)-linux-gnueabihf
-DTB            := bcm2709-rpi-2-b.dtb
 TARGET_CFLAGS  := -marm -mabi=aapcs-linux -mno-thumb-interwork -mcpu=cortex-a7 \
                   -mtune=cortex-a7 -mfpu=neon-vfpv4 -mhard-float \
                   -mfloat-abi=hard -ffast-math -D_FORTIFY_SOURCE=2 \
@@ -68,6 +67,7 @@ HOST_AUTOCONF_BUILD_ARGS     := $(AUTOCONF_BUILD_ARGS)
 HOST_AUTOCONF_INSTALL_ARGS   := $(HOST_AUTOCONF_BUILD_ARGS)
 
 TARGET_CC                    := $(CROSS_COMPILE)gcc
+TARGET_CPP                   := $(CROSS_COMPILE)cpp
 TARGET_CXX                   := $(CROSS_COMPILE)g++
 TARGET_AR                    := $(CROSS_COMPILE)gcc-ar
 TARGET_AS                    := $(CROSS_COMPILE)as
@@ -644,14 +644,19 @@ $(call builddir,linux)/.built: $(call builddir,linux)/.config
 	$(MAKE) -C $(call srcdir,linux) $(linux_mkflags) all
 	touch $@
 
+$(IMG)/rpi-nav.dtb: $(BOOT)/rpi-nav.dts $(call builddir,linux)/.built | $(IMG)
+	$(TARGET_CPP) -nostdinc -I$(call srcdir,linux)/arch/$(ARCH)/boot/dts \
+		-I$(call srcdir,linux)/arch/$(ARCH)/boot/dts/include -undef \
+		-D__DTS__ -x assembler-with-cpp $< | \
+		$(call builddir,linux)/scripts/dtc/dtc -b 0 -@ -I dts -O dtb \
+		-i $(call srcdir,linux)/arch/$(ARCH)/boot/dts -o $@
+
 .PHONY: install-linux
 install-linux: $(call builddir,linux)/.installed
-$(call builddir,linux)/.installed: $(call builddir,linux)/.built | \
-                                   $(ROOT) $(IMG)
+$(call builddir,linux)/.installed: $(IMG)/rpi-nav.dtb | $(ROOT) $(IMG)
 	$(MAKE) -C $(call srcdir,linux) $(linux_mkflags) modules_install
 	$(LN) $(call builddir,linux)/arch/$(ARCH)/boot/zImage $(IMG)/zImage
 	$(LN) $(call builddir,linux)/arch/$(ARCH)/boot/Image $(IMG)/Image
-	$(LN) $(call builddir,linux)/arch/$(ARCH)/boot/dts/$(DTB) $(IMG)/$(DTB)
 	touch $@
 
 .PHONY: clean-linux
@@ -665,7 +670,7 @@ clean-linux: uninstall-linux
 .PHONY: uninstall-linux
 uninstall-linux:
 	$(RM) -r $(ROOT)/lib/modules/ $(ROOT)/lib/firmware
-	$(RM) $(IMG)/zImage $(IMG)/Image $(IMG)/$(DTB)
+	$(RM) $(IMG)/zImage $(IMG)/Image $(IMG)/rpi-nav.dtb
 	$(RM) $(call builddir,linux)/.installed
 
 .PHONY: linux-%
