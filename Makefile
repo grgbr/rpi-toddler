@@ -720,7 +720,8 @@ $(STAGE)/usr/bin/lsiio: $(iio_build)/.built
 
 $(STAGE)/usr/bin/iio_generic_buffer: $(iio_build)/.built
 	$(INSTALL) -D -m755 $(iio_build)/iio_generic_buffer $@
-	$(call root_install_bin,usr/bin/lsiio,usr/bin/lsiio)
+	$(call root_install_bin, \
+	  usr/bin/iio_generic_buffer,usr/bin/iio_generic_buffer)
 
 .PHONY: install-iio
 install-iio: $(iio_build)/.installed
