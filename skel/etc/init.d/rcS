@@ -5,6 +5,7 @@ modprobe i2c-dev
 modprobe spi-bcm2835
 modprobe industrialio-sw-trigger
 modprobe iio-trig-hrtimer
+modprobe iio-trig-loop
 modprobe ak8975
 modprobe ms5611_i2c
 modprobe st_pressure_i2c
