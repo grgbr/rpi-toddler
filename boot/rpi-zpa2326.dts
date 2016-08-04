@@ -1,0 +1,40 @@
+#include "bcm2709-rpi-2-b.dts"
+#include "dt-bindings/interrupt-controller/irq.h"
+
+/ {
+        /* Main board it is compatible with */
+	compatible = "brcm,bcm2709";
+	model = "Raspberry Pi 2 Model B";
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	/* barometer */
+	zpa2326@5c {
+		status = "okay";
+		compatible = "murata,zpa2326";
+		reg = <0x5c>;
+		interrupt-parent = <&gpio>;
+		interrupts = <12 IRQ_TYPE_EDGE_RISING>;
+	};
+};
+
+&spi0 {
+	status = "okay";
+
+	spidev@0 {
+		status = "disabled";
+	};
+
+	/* barometer */
+	zpa2326@0 {
+		status = "okay";
+		compatible = "murata,zpa2326";
+		reg = <0>;
+		spi-max-frequency = <1000>;
+		interrupt-parent = <&gpio>;
+		interrupts = <19 IRQ_TYPE_EDGE_RISING>;
+	};
+};
